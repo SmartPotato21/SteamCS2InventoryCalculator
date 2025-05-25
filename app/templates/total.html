@@ -1,23 +1,370 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Steam Inventory Price Calculator</title>
-    </head>
-    <body>
-        <h1>Enter your Steam ID</h1>
-        <form method="post">
-            <input type="text" name="user_input" required value="{{ user_input or '' }}">
-            <button type="submit">Submit</button>
-        </form>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam Inventory Price Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-        {% if total is not none and item is not none %}
-            <h2>Total inventory price: {{ total }}</h2> 
-            <h2>Most expensive item: {{ item }}</h2>
-            <h2>Costing: {{ cost }}</h2>
-        {% endif %}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
 
-        {% if error %}
-            <p style="color: red;">{{ error }}</p>
-        {% endif %}
-    </body>
-</html>
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .calculator-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .calculator-panel:hover {
+            transform: translateY(-5px);
+        }
+
+        .panel-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .input-field:focus {
+            border-color: #4ecdc4;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 20px rgba(78, 205, 196, 0.3);
+        }
+
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #4ecdc4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: {{result_display}};
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-card {
+            background: linear-gradient(45deg, rgba(255, 107, 107, 0.2), rgba(78, 205, 196, 0.2));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(5px);
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #4ecdc4;
+        }
+
+        .result-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .leaderboard-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            height: fit-content;
+        }
+
+        .leaderboard-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .leaderboard-entry {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .leaderboard-entry:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .leaderboard-entry::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+        }
+
+        .entry-rank {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffd700;
+            margin-right: 15px;
+        }
+
+        .entry-name {
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .entry-value {
+            font-weight: 700;
+            color: #4ecdc4;
+        }
+
+        .error-message {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid rgba(255, 107, 107, 0.5);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #ff6b6b;
+            text-align: center;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .calculator-panel, .leaderboard-panel {
+                padding: 20px;
+            }
+            
+            .panel-title, .leaderboard-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        .steam-icon {
+            display: inline-block;
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="calculator-panel">
+            <h1 class="panel-title">
+                <span class="steam-icon">🎮</span>
+                Steam Inventory Price Calculator
+            </h1>
+            <form method="post">
+                <div class="input-section">
+                    <div class="input-group">
+                        
+                            <input 
+                                type="text" 
+                                name="user_input"
+                                class="input-field" 
+                                placeholder="Enter your Steam ID (e.g., 76561198000000000)"
+                                required value="{{ user_input or '' }}"
+                            >
+                        
+                    </div>
+                    <button type="submit" id="calculateBtn" class="submit-btn">
+                        Calculate Inventory Value
+                    </button>
+                </div>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span>Calculating your inventory value...</span>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+            
+            {% if total is not none and item is not none %}
+                <div class="results" id="results">
+                    <div class="result-card">
+                        <div class="result-title">Total Inventory Value</div>
+                        <div class="result-value" id="totalValue">{{ total }}</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-title">Most Expensive Item</div>
+                        <div class="result-value" id=item>{{item}}</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-title">Item Value</div>
+                        <div class="result-value" id="itemCost">{{ cost }}</div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="leaderboard-panel">
+            <h2 class="leaderboard-title">
+                🏆 Leaderboard
+            </h2>
+            
+            <div id="leaderboardEntries">
+                <div class="leaderboard-entry">
+                    <span class="entry-rank">#1</span>
+                    <span class="entry-name">ProGamer2024</span>
+                    <span class="entry-value">$15,247.83</span>
+                </div>
+                <div class="leaderboard-entry">
+                    <span class="entry-rank">#2</span>
+                    <span class="entry-name">SteamCollector</span>
+                    <span class="entry-value">$12,891.45</span>
+                </div>
+                <div class="leaderboard-entry">
+                    <span class="entry-rank">#3</span>
+                    <span class="entry-name">KnifeEnthusiast</span>
+                    <span class="entry-value">$9,632.17</span>
+                </div>
+                <div class="leaderboard-entry">
+                    <span class="entry-rank">#4</span>
+                    <span class="entry-name">CSGOTrader</span>
+                    <span class="entry-value">$7,845.92</span>
+                </div>
+                <div class="leaderboard-entry">
+                    <span class="entry-rank">#5</span>
+                    <span class="entry-name">SkinHunter</span>
+                    <span class="entry-value">$6,234.76</span>
+                </div>
+                <div class="leaderboard-entry">
+                    <span class="entry-rank">#6</span>
+                    <span class="entry-name">RareItemFinder</span>
+                    <span class="entry-value">$5,891.23</span>
+                </div>
+                <div class="leaderboard-entry">
+                    <span class="entry-rank">#7</span>
+                    <span class="entry-name">TradingPro</span>
+                    <span class="entry-value">$4,567.89</span>
+                </div>
+                <div class="leaderboard-entry">
+                    <span class="entry-rank">#8</span>
+                    <span class="entry-name">InventoryKing</span>
+                    <span class="entry-value">$3,456.12</span>
+                </div>
+            </div>
+        </div>
+    </div>
