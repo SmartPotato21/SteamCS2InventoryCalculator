@@ -196,11 +196,36 @@
             padding: 15px 20px;
             margin-bottom: 12px;
             display: flex;
-            justify-content: space-between;
+            flex-direction: row;
+            justify-content: flex-start;
             align-items: center;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            min-height: 80px;
+            gap: 0; /* Remove any default gap */
+        }
+
+        .leaderboard-entry .thumbnail {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-right: 15px;
+            flex-shrink: 0;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1); /* Fallback background */
+        }
+
+        .leaderboard-entry .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block; /* Remove any inline spacing */
         }
 
         .leaderboard-entry:hover {
@@ -305,7 +330,7 @@
                 <div class="results" id="results">
                     <div class="result-card">
                         <div class="result-title">Total Inventory Value</div>
-                        <div class="result-value" id="totalValue">{{ total }}</div>
+                        <div class="result-value" id="totalValue">${{ total }}</div>
                     </div>
                     <div class="result-card">
                         <div class="result-title">Most Expensive Item</div>
@@ -313,7 +338,7 @@
                     </div>
                     <div class="result-card">
                         <div class="result-title">Item Value</div>
-                        <div class="result-value" id="itemCost">{{ cost }}</div>
+                        <div class="result-value" id="itemCost">${{ cost }}</div>
                     </div>
                 </div>
             {% endif %}
@@ -325,46 +350,20 @@
             </h2>
             
             <div id="leaderboardEntries">
+                {% for user in leaderboard %}
+                
                 <div class="leaderboard-entry">
-                    <span class="entry-rank">#1</span>
-                    <span class="entry-name">ProGamer2024</span>
-                    <span class="entry-value">$15,247.83</span>
+
+                    <span class="entry-rank">#{{loop.index}}</span>
+
+                    <div class="thumbnail">
+                        <img src="{{ user.thumbnail }}" alt="User Thumbnail">
+                    </div>
+                    
+                    <span class="entry-name">{{user.username}}</span>
+                    <span class="entry-value">${{user.number}}</span>
                 </div>
-                <div class="leaderboard-entry">
-                    <span class="entry-rank">#2</span>
-                    <span class="entry-name">SteamCollector</span>
-                    <span class="entry-value">$12,891.45</span>
-                </div>
-                <div class="leaderboard-entry">
-                    <span class="entry-rank">#3</span>
-                    <span class="entry-name">KnifeEnthusiast</span>
-                    <span class="entry-value">$9,632.17</span>
-                </div>
-                <div class="leaderboard-entry">
-                    <span class="entry-rank">#4</span>
-                    <span class="entry-name">CSGOTrader</span>
-                    <span class="entry-value">$7,845.92</span>
-                </div>
-                <div class="leaderboard-entry">
-                    <span class="entry-rank">#5</span>
-                    <span class="entry-name">SkinHunter</span>
-                    <span class="entry-value">$6,234.76</span>
-                </div>
-                <div class="leaderboard-entry">
-                    <span class="entry-rank">#6</span>
-                    <span class="entry-name">RareItemFinder</span>
-                    <span class="entry-value">$5,891.23</span>
-                </div>
-                <div class="leaderboard-entry">
-                    <span class="entry-rank">#7</span>
-                    <span class="entry-name">TradingPro</span>
-                    <span class="entry-value">$4,567.89</span>
-                </div>
-                <div class="leaderboard-entry">
-                    <span class="entry-rank">#8</span>
-                    <span class="entry-name">InventoryKing</span>
-                    <span class="entry-value">$3,456.12</span>
-                </div>
+                {% endfor %}
             </div>
         </div>
     </div>

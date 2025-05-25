@@ -7,6 +7,7 @@ import requests, json, os
 app = Flask(__name__)
 totalhtml = "total.html"
 
+api = "E895636E4E57F189A5C49EBFCD70C138"
 
 def create_app(config=None) -> Flask:
 
@@ -40,14 +41,23 @@ def home():
         
         
         web = f"http://steamcommunity.com/inventory/{user_input}/730/2?l=english&count=5000"
-        
+        web_name = f"http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={api}&steamids={user_input}"
         try:
             r = requests.get(web)
             r.raise_for_status()
             data = r.json()
             items = data.get("descriptions", [])
+            
+            name_request = requests.get(web_name)
+            name_request.raise_for_status()
+            steam_name = name_request.json()
+            steam_pfp = steam_name["response"]["players"][0]["avatar"]
+            steam_name = steam_name["response"]["players"][0]["personaname"]
+            
+            print(steam_pfp)
+            
 
-            json_path = os.path.join(app.root_path, 'data', 'skin_730_response.json')
+            json_path = os.path.join(app.root_path, 'db', 'skin_730_response.json')
             with open(json_path, 'r', encoding='utf-8') as f:
                 database = json.load(f)
 
@@ -66,6 +76,7 @@ def home():
                     total_price += price
             
             total = round(total_price,2)
+            
         
         except requests.RequestException:
             error = "Failed to fetch inventory from Steam."
@@ -73,14 +84,34 @@ def home():
             error = "Invalid JSON response from Steam."
         except Exception as e:
             error = f"Unexpected error: {e}"
+            
+    if(total):
+        json_path = os.path.join(app.root_path, 'db', 'lb.json')
+        with open(json_path, 'r', encoding='utf-8') as f:
+            leaderboard = json.load(f)    
+        
+        leaderboard = [user for user in leaderboard if user["username"] != steam_name]
+        
+        leaderboard.append({
+            "username": steam_name,
+            "number": total,
+            "thumbnail": steam_pfp})
+        
+        leaderboard = sorted(leaderboard, key=lambda x: x["number"], reverse=True)[:8]    
+        
+        with open(json_path, 'w') as f:
+            json.dump(leaderboard, f, indent=4)
+           
+        
     
-    return render_template(totalhtml, total=total, item=most_expensive, cost = most_expensive_price, result_display='block')
     
+    return render_template(totalhtml, total=total, item=most_expensive, cost = most_expensive_price, result_display='block',leaderboard=leaderboard)
     
 
 def get_price_by_id(namelookup, database):
     classid_str = str(namelookup)
     for item in database:
+        
         if str(item.get('name')) == classid_str:
             return int(item.get('suggested_price'))
     return 0
